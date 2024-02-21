@@ -5,12 +5,12 @@ Parameters:
   Team:
     Type: String
     Description: the name of the team
-    Default: SGB-DevOps
+    Default: brian-DevOps
 
   TeamEmail:
     Type: String
     Description: team e-mail address
-    Default: SBG-DevOps@standardbank.onmicrosoft.com
+    Default: example@example.com
 
   Env:
     Type: String
@@ -30,25 +30,25 @@ Resources:
       TopicName: !Sub SNS_Notification_for_Log_group_retention
       Tags:
         - Key: GroupName
-          Value: 'SGB-DevOps'
+          Value: 'brian-DevOps'
         - Key: Environment
           Value: !Ref Env
         - Key: Team-Email
-          Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+          Value: 'example@example.com'
         - Key: Tier
           Value: 'MCA'
           
   SNSTopicSubscriptionLambda:
     Type: AWS::SNS::Subscription
     Properties:
-      Endpoint: DigitalPlatformsTechnicalLeads@Standardbank.co.za
+      Endpoint: example@example.co.za
       Protocol: "Email"
       TopicArn: !Ref 'SNSTopicLambda'
   
   SNSTopicSubscriptionLambdaTWO:
     Type: AWS::SNS::Subscription
     Properties:
-      Endpoint: Sbg-DevOps-CloudEngineering@standardbank.co.za
+      Endpoint: example@example.co.za
       Protocol: "Email"
       TopicArn: !Ref 'SNSTopicLambda'
   
