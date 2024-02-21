@@ -6,7 +6,7 @@ Parameters:
   Team:
     Type: String
     Description: the name of the team
-    Default: SGB-DevOps
+    Default: brian-DevOps
 
   TeamEmail:
     Type: String
@@ -33,11 +33,11 @@ Resources:
      
       Tags:
         - Key: GroupName
-          Value: 'SGB-DevOps'
+          Value: 'brian-DevOps'
         - Key: Environment
           Value: !Ref Env
         - Key: Team-Email
-          Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+          Value: 'example@example.com'
         - Key: Tier
           Value: 'MCA'
 
