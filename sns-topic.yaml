@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: creating a Simple Notification Service for Lambda retention period function to send notifications
+
+Parameters:
+  Team:
+    Type: String
+    Description: the name of the team
+    Default: SGB-DevOps
+
+  TeamEmail:
+    Type: String
+    Description: team e-mail address
+    Default: SBG-DevOps@standardbank.onmicrosoft.com
+
+  Env:
+    Type: String
+    Default: dev
+    Description: Environment the resources/ stack is deployed to
+    AllowedValues:
+      - "dev"
+      - "sit"
+      - "prod"
+
+
+
+Resources:
+  SNSTopicLambda:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub SNS_Notification_for_Log_group_retention
+      Tags:
+        - Key: GroupName
+          Value: 'SGB-DevOps'
+        - Key: Environment
+          Value: !Ref Env
+        - Key: Team-Email
+          Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+        - Key: Tier
+          Value: 'MCA'
+          
+  SNSTopicSubscriptionLambda:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: DigitalPlatformsTechnicalLeads@Standardbank.co.za
+      Protocol: "Email"
+      TopicArn: !Ref 'SNSTopicLambda'
+  
+  SNSTopicSubscriptionLambdaTWO:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: Sbg-DevOps-CloudEngineering@standardbank.co.za
+      Protocol: "Email"
+      TopicArn: !Ref 'SNSTopicLambda'
+  
+

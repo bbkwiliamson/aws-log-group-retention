@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: creating a lambda function for automating the cloudwatch log group retention period at creation time and the lambda role
+
+Parameters:
+  Team:
+    Type: String
+    Description: the name of the team
+
+  TeamEmail:
+    Type: String
+    Description: team e-mail address
+
+  Env:
+    Type: String
+    Default: dev
+    Description: Environment the resources/ stack is deployed to
+    AllowedValues:
+      - "dev"
+      - "sit"
+      - "prod"
+
+Resources:
+  BoundedLambdaLogGroupRetentionRole: #creation of lambda function role
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: "Bounded-Lambda-LogGroup-Retention"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/BoundedPermissionsPolicy"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/bounded/"
+      Policies:
+        - PolicyName: "Lambda-log-group-Retention-S3-access-role-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                 - "s3:GetObject"
+                Resource: !Sub "arn:aws:s3:::lambda-function-${AWS::AccountId}-retention-python-zipfile-${Env}/*"
+              - Effect: Allow
+                Action:
+                  - "logs:*"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "sns:*"
+                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:SNS_Notification_for_Log_group_retention"
+      
+  
+  #creation of lambda function
+  LambdaRetentionFunction:
+     Type: AWS::Lambda::Function
+     Properties:
+        FunctionName: Lambda-Log-Group-Retention-function
+        Role: !GetAtt "BoundedLambdaLogGroupRetentionRole.Arn"
+        Runtime: python3.9
+        Handler: lambda.lambda_handler
+        Timeout: 60
+        Description: A Lambda function that will implement retention period on cloudwatch log groups
+        MemorySize: 160
+        Code: #getting the lambda python file code from the specified bucket
+      
+          S3Bucket: !Sub lambda-function-${AWS::AccountId}-retention-python-zipfile-${Env}
+          S3Key: lambda.zip
+        Tags:
+          - Key: GroupName
+            Value: 'SGB-DevOps'
+          - Key: Environment
+            Value: !Ref Env
+          - Key: Team-Email
+            Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+          - Key: Tier
+            Value: 'MCA'
+  
+  #creation of lambda function log group
+  LambdaFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties: 
+      RetentionInDays: 1
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref LambdaRetentionFunction]]    
+      Tags:
+        - Key: GroupName
+          Value: 'SGB-DevOps'
+        - Key: Environment
+          Value: !Ref Env
+        - Key: Team-Email
+          Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+        - Key: Tier
+          Value: 'MCA'   
+
+  #creation of a rule to trigger the lambda function
+  ScheduledEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: ScheduledRule/ event to trigger the lambda function
+      Name: lambda-retention-function-event-rule-trigger
+      EventPattern:
+        source:
+         - "aws.logs"
+        detail:
+          eventSource:
+            - "logs.amazonaws.com"
+          eventName:
+           - "CreateLogGroup"
+      State: DISABLED
+      Targets: 
+       - Arn: !GetAtt LambdaRetentionFunction.Arn
+         Id: !Ref "LambdaRetentionFunction"
+  
+
+  # creating a role that will be assumed by event scheduler after 1 week to trigger lambda function
+  BoundedScheduleRole: #creation of lambda function role
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: "Bounded-Schedule-trigger-for-Lambda-Retention"
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/BoundedPermissionsPolicy"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - scheduler.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/bounded/"
+      Policies:
+        - PolicyName: "Schedule-trigger-for-Lambda-retention-role-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                 - "lambda:InvokeFunction"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:Lambda-Log-Group-Retention-function"
+
+  MyRateLimitedRule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: the Lambda function to be triggered every week
+      ScheduleExpression: "cron(30 8 27 * ? *)"
+      FlexibleTimeWindow:
+        MaximumWindowInMinutes: 10
+        Mode: FLEXIBLE
+      State: ENABLED
+      Target:
+        Arn: !GetAtt LambdaRetentionFunction.Arn
+        RoleArn: !GetAtt BoundedScheduleRole.Arn
+           
+          
+ 
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaRetentionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduledEventRule.Arn
+  
+  PermissionForScheduleToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaRetentionFunction
+      Action: lambda:InvokeFunction
+      Principal: scheduler.amazonaws.com
+      SourceArn: !GetAtt MyRateLimitedRule.Arn
+  
+
+            
