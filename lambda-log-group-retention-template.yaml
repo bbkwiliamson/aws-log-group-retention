@@ -71,11 +71,11 @@ Resources:
           S3Key: lambda.zip
         Tags:
           - Key: GroupName
-            Value: 'SGB-DevOps'
+            Value: 'brian-DevOps'
           - Key: Environment
             Value: !Ref Env
           - Key: Team-Email
-            Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+            Value: 'example@example.com'
           - Key: Tier
             Value: 'MCA'
   
@@ -87,11 +87,11 @@ Resources:
       LogGroupName: !Join ["", ["/aws/lambda/", !Ref LambdaRetentionFunction]]    
       Tags:
         - Key: GroupName
-          Value: 'SGB-DevOps'
+          Value: 'brian-DevOps'
         - Key: Environment
           Value: !Ref Env
         - Key: Team-Email
-          Value: 'SBG-DevOps@standardbank.onmicrosoft.com'
+          Value: 'example@example.com'
         - Key: Tier
           Value: 'MCA'   
 
