@@ -20,6 +20,10 @@ the template has _ parameters_: which is where i define values that might be dif
 7. the scheduler role linked to the scheduler defined as cron with specific date and also linked to the lambda function and the schedule role
 8. finally i create the lambda permissions for both the schedule and events triggers.
 
+
+it is also important to note that permission boundary policy is already created in the accounts. if you want to use the templates, your own account might not need it or have it, so you can remove the line or just use comments so that CloudFormation won't demand it.
+
+
   **sns-topic.yaml**
    this template simply creates a simple notification topic with subsbrictions using protocol E-mail as the prefered method of communication
 
